@@ -215,6 +215,14 @@ test("z.exactPartial with mask", () => {
   expect(z.safeParse(partialSchemaWithMask, { age: 30, name: undefined }).success).toBe(false);
 });
 
+test("z.partialNoDefaults", () => {
+  const schema = z.object({ name: z._default(z.string(), "anon"), age: z.number() });
+  expect(z.parse(z.partial(schema), {})).toEqual({ name: "anon" });
+  expect(z.parse(z.partialNoDefaults(schema), {})).toEqual({});
+  expect(z.parse(z.partialNoDefaults(schema, { name: true }), { age: 1 })).toEqual({ age: 1 });
+  expect(z.safeParse(z.partialNoDefaults(schema, { name: true }), {}).success).toBe(false);
+});
+
 test("z.required", () => {
   const requiredSchema = z.required(userSchema);
   type RequiredUser = z.infer<typeof requiredSchema>;

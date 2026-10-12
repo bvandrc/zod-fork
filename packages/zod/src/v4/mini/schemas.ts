@@ -1050,6 +1050,31 @@ export function partial(schema: ZodMiniObject | ZodMiniTuple, mask?: object) {
   });
 }
 
+/** Like `partial()`, but an absent key stays absent instead of taking its field's default. */
+// @__NO_SIDE_EFFECTS__
+export function partialNoDefaults<T extends ZodMiniObject>(
+  schema: T
+): ZodMiniObject<
+  {
+    -readonly [k in keyof T["shape"]]: ZodMiniOptional<T["shape"][k]>;
+  },
+  T["_zod"]["config"]
+>;
+// @__NO_SIDE_EFFECTS__
+export function partialNoDefaults<T extends ZodMiniObject, M extends util.Mask<keyof T["shape"]>>(
+  schema: T,
+  mask: M & Record<Exclude<keyof M, keyof T["shape"]>, never>
+): ZodMiniObject<
+  {
+    -readonly [k in keyof T["shape"]]: k extends keyof M ? ZodMiniOptional<T["shape"][k]> : T["shape"][k];
+  },
+  T["_zod"]["config"]
+>;
+// @__NO_SIDE_EFFECTS__
+export function partialNoDefaults(schema: ZodMiniObject, mask?: object) {
+  return util.partial(ZodMiniOptional, schema, mask, "partialNoDefaults", { applyDefaults: false });
+}
+
 // @__NO_SIDE_EFFECTS__
 export function exactPartial<T extends ZodMiniObject>(
   schema: T
