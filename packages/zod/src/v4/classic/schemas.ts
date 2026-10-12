@@ -1638,6 +1638,22 @@ export interface ZodObject<
     Config
   >;
 
+  /** Like `.partial()`, but an absent key stays absent instead of taking its field's default. */
+  partialNoDefaults(): ZodObject<
+    {
+      -readonly [k in keyof Shape]: ZodOptional<Shape[k]>;
+    },
+    Config
+  >;
+  partialNoDefaults<M extends util.Mask<keyof Shape>>(
+    mask: M & Record<Exclude<keyof M, keyof Shape>, never>
+  ): ZodObject<
+    {
+      -readonly [k in keyof Shape]: k extends keyof M ? ZodOptional<Shape[k]> : Shape[k];
+    },
+    Config
+  >;
+
   // exactPartial
   exactPartial(): ZodObject<
     {
@@ -1718,6 +1734,9 @@ export const ZodObject: core.$constructor<ZodObject> = /*@__PURE__*/ core.$const
     },
     partial(...args) {
       return util.partial(ZodOptional, this, args[0]);
+    },
+    partialNoDefaults(...args) {
+      return util.partial(ZodOptional, this, args[0], "partialNoDefaults", { applyDefaults: false });
     },
     exactPartial(...args) {
       return util.partial(ZodExactOptional, this, args[0], "exactPartial");

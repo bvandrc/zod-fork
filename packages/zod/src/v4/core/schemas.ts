@@ -3906,6 +3906,8 @@ export const $ZodTransform: core.$constructor<$ZodTransform> = /*@__PURE__*/ cor
 export interface $ZodOptionalDef<T extends SomeType = $ZodType> extends $ZodTypeDef {
   type: "optional";
   innerType: T;
+  /** Whether an absent value is handed to a defaulted `innerType`. Defaults to `true`. */
+  applyDefaults?: boolean | undefined;
 }
 
 export interface $ZodOptionalInternals<T extends SomeType = $ZodType>
@@ -3934,7 +3936,7 @@ export const $ZodOptional: core.$constructor<$ZodOptional> = /*@__PURE__*/ core.
     $ZodType.init(inst, def);
     // .optional() propagates absence rather than substituting for it, so a defaulted inner keeps its rung.
     util.defineLazyInternal(inst, "optin", (zod) =>
-      zod.def.innerType._zod.optin === "defaulted" ? "defaulted" : "optional"
+      zod.def.applyDefaults !== false && zod.def.innerType._zod.optin === "defaulted" ? "defaulted" : "optional"
     );
     inst._zod.optout = "optional";
 
@@ -3950,7 +3952,7 @@ export const $ZodOptional: core.$constructor<$ZodOptional> = /*@__PURE__*/ core.
     inst._zod.parse = (payload, ctx) => {
       if (payload.value === undefined) {
         // Only the top rung substitutes a value for absence; everything else leaves it intact, which is what .optional() means.
-        if (def.innerType._zod.optin !== "defaulted") return payload;
+        if (def.applyDefaults === false || def.innerType._zod.optin !== "defaulted") return payload;
         // Its own payload, for the same reason $ZodCatch gets one: a pipe forwards an unrecognized key through the caller's issues array, and this must not read that as the substituting schema failing and drop it.
         const result = def.innerType._zod.run({ value: payload.value, issues: [] }, ctx);
         if (result instanceof Promise) return result.then((result) => handleOptionalResult(payload, result));
