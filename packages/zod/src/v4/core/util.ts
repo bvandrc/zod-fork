@@ -1,6 +1,6 @@
 import type * as checks from "./checks.js";
 import { globalConfig } from "./core.js";
-import type { $ZodConfig } from "./core.js";
+import type { $ZodConfig, output } from "./core.js";
 import type * as errors from "./errors.js";
 import type * as schemas from "./schemas.js";
 
@@ -163,6 +163,10 @@ export type LoosePartial<T extends object> = InexactPartial<T> & {
 };
 export type Mask<Keys extends PropertyKey> = { [K in Keys]?: true };
 export type Writeable<T> = { -readonly [P in keyof T]: T[P] } & {};
+/** The keys of `Shape` that substitute a value for an absent key, each with the value it substitutes. */
+export type ObjectDefaults<Shape extends schemas.$ZodShape> = Flatten<{
+  -readonly [k in keyof Shape as Shape[k]["_zod"]["optin"] extends "defaulted" ? k : never]: output<Shape[k]>;
+}>;
 export type InexactPartial<T> = {
   [P in keyof T]?: T[P] | undefined;
 };
@@ -778,6 +782,19 @@ function maskedKeys(schema: schemas.$ZodObject, mask: object): PropertyKey[] {
     if ((mask as any)[key]) keys.push(key);
   }
   return keys;
+}
+
+export function defaults(
+  schema: schemas.$ZodObject,
+  parse: (schema: schemas.$ZodType, value: unknown) => unknown
+): any {
+  const shape = schema._zod.def.shape;
+  const result: Record<string, unknown> = {};
+  for (const key in shape) {
+    // the same rung an object reads to fill an absent key, so this yields exactly what parsing `{}` would
+    if (shape[key]!._zod.optin === "defaulted") result[key] = parse(shape[key]!, undefined);
+  }
+  return result;
 }
 
 export function omit(schema: schemas.$ZodObject, mask: object): any {

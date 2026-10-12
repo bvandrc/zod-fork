@@ -453,3 +453,30 @@ test("default factory does not run at compile time", () => {
   expect(compiled.parse({})).toEqual({ a: "d" });
   expect(calls).toBe(1);
 });
+
+test("object .defaults()", () => {
+  let calls = 0;
+  const schema = z
+    .object({
+      name: z.string(),
+      theme: z.string().default("light"),
+      size: z.number().prefault(14),
+      tags: z.array(z.string()).default(() => {
+        calls++;
+        return [];
+      }),
+      maybe: z.string().optional(),
+      nested: z.object({ a: z.string().default("x") }).default({ a: "y" }),
+    })
+    .refine(() => true);
+
+  const defaults = schema.defaults();
+  expect(defaults).toStrictEqual({ theme: "light", size: 14, tags: [], nested: { a: "y" } });
+  expect(calls).toBe(1);
+  expect(schema.defaults().tags).not.toBe(defaults.tags);
+  expectTypeOf(defaults).toEqualTypeOf<{ theme: string; size: number; tags: string[]; nested: { a: string } }>();
+
+  expect(z.object({ a: z.string() }).defaults()).toStrictEqual({});
+  // a failing default surfaces rather than being skipped
+  expect(() => z.object({ a: z.string().min(1).prefault("") }).defaults()).toThrow();
+});
