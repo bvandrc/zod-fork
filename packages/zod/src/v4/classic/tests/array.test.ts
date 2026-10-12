@@ -289,3 +289,41 @@ test("parse should fail given sparse array", () => {
 //     expect(issue?.message).toEqual("Custom message: '1,2' are not unique");
 //   }
 // });
+
+test("dropInvalid", async () => {
+  const schema = z.array(z.number(), { dropInvalid: true });
+  expect(schema.parse([1, "a", 2, null, 3])).toEqual([1, 2, 3]);
+  expect(schema.parse(["a"])).toEqual([]);
+  expect(schema.safeParse("not an array").success).toBe(false);
+  expect(z.array(z.number()).safeParse([1, "a"]).success).toBe(false);
+  expectTypeOf<z.input<typeof schema>>().toEqualTypeOf<number[]>();
+  expectTypeOf<z.output<typeof schema>>().toEqualTypeOf<number[]>();
+
+  // an element that accepts undefined keeps it
+  expect(z.array(z.string().optional(), { dropInvalid: true }).parse(["a", undefined, 1])).toEqual(["a", undefined]);
+  // transforms see only valid elements, and the output holds what they produced
+  expect(
+    z
+      .array(
+        z.string().transform((s) => s.length),
+        { dropInvalid: true }
+      )
+      .parse(["ab", 1, "c"])
+  ).toEqual([2, 1]);
+  // size checks count what survives
+  expect(schema.max(2).safeParse([1, "a", 2]).success).toBe(true);
+  expect(schema.min(2).safeParse([1, "a"]).success).toBe(false);
+  // abortEarly must not stop at the first dropped element
+  expect(
+    z.validate(
+      schema.refine((a) => a.length === 2 && a.every((n) => typeof n === "number")),
+      ["a", 1, 2]
+    )
+  ).toBe(true);
+
+  const asyncSchema = z.array(
+    z.number().refine(async (n) => n > 0),
+    { dropInvalid: true }
+  );
+  expect(await asyncSchema.parseAsync([1, -1, "a", 2])).toEqual([1, 2]);
+});

@@ -292,6 +292,12 @@ test("z.void", () => {
   expect(() => z.parse(a, null)).toThrow();
 });
 
+test("z.array dropInvalid", () => {
+  const a = z.array(z.string(), { dropInvalid: true }).check(z.minLength(1));
+  expect(z.parse(a, ["a", 1, "b"])).toEqual(["a", "b"]);
+  expect(z.safeParse(a, [1]).success).toBe(false);
+});
+
 test("z.array", () => {
   const a = z.array(z.string());
   expect(z.parse(a, ["hello", "world"])).toEqual(["hello", "world"]);
