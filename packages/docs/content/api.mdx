@@ -1532,6 +1532,31 @@ const PartialRecipe = z.exactPartial(Recipe);
 </Tab>
 </Tabs>
 
+### `.partialNoDefaults()`
+
+Identical to `.partial()`, except that an absent key stays absent. A plain `.partial()` still applies each field's [default](#defaults), which turns a partial update into a full overwrite:
+
+<Tabs groupId="lib" items={["Zod", "Zod Mini"]}>
+<Tab value="Zod">
+```ts zod
+const Settings = z.object({ theme: z.string().default("light"), fontSize: z.number().default(14) });
+
+Settings.partial().parse({ fontSize: 16 }); // => { theme: "light", fontSize: 16 }
+Settings.partialNoDefaults().parse({ fontSize: 16 }); // => { fontSize: 16 }
+```
+</Tab>
+<Tab value="Zod Mini">
+```ts
+const Settings = z.object({ theme: z._default(z.string(), "light"), fontSize: z._default(z.number(), 14) });
+
+z.parse(z.partial(Settings), { fontSize: 16 }); // => { theme: "light", fontSize: 16 }
+z.parse(z.partialNoDefaults(Settings), { fontSize: 16 }); // => { fontSize: 16 }
+```
+</Tab>
+</Tabs>
+
+It accepts the same mask as `.partial()`. Defaults nested inside a present value still apply.
+
 ### `z.deepPartial()` [#deep-partial]
 
 Where `.partial()` only touches the top-level shape, `z.deepPartial()` recurses to every object in the tree — through arrays, tuples, unions, records, and wrappers.
