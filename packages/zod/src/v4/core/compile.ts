@@ -1356,7 +1356,7 @@ function generateOptionalCheck(
   }
 
   // Same question $ZodOptional asks: only the top rung of the optin ladder substitutes a value for an absent input, so only it is worth running on `undefined`. Every other rung leaves the value intact, which is the skip branch below.
-  if (def.innerType._zod.optin === "defaulted") {
+  if (schema._zod.optin === "defaulted") {
     const outputVar = newVar(ctx);
     const branchVar = newVar(ctx);
     doc.write(`let ${outputVar};`);

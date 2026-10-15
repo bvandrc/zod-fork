@@ -861,7 +861,8 @@ export function partial(
   Class: SchemaClass<schemas.$ZodOptional> | null,
   schema: schemas.$ZodObject,
   mask: object | undefined,
-  name = "partial"
+  name = "partial",
+  params?: Pick<schemas.$ZodOptionalDef, "applyDefaults">
 ): any {
   const currDef = schema._zod.def;
   const checks = currDef.checks;
@@ -877,7 +878,8 @@ export function partial(
     schema,
     Reflect.ownKeys(sourceShape(schema)),
     Class &&
-      ((value, key) => (selected && !selected.has(key) ? value : new Class({ type: "optional", innerType: value })))
+      ((value, key) =>
+        selected && !selected.has(key) ? value : new Class({ type: "optional", innerType: value, ...params }))
   );
 
   return clone(schema, mergeDefs(schema._zod.def, { shape: newShape, checks: [] })) as any;
