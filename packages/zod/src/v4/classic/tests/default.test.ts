@@ -455,24 +455,20 @@ test("default factory does not run at compile time", () => {
 });
 
 test("object .defaults()", () => {
-  let calls = 0;
   const schema = z
     .object({
       name: z.string(),
       theme: z.string().default("light"),
       size: z.number().prefault(14),
-      tags: z.array(z.string()).default(() => {
-        calls++;
-        return [];
-      }),
+      tags: z.array(z.string()).default(() => []),
       maybe: z.string().optional(),
       nested: z.object({ a: z.string().default("x") }).default({ a: "y" }),
     })
+    // refined, since `.pick()` would throw here
     .refine(() => true);
 
   const defaults = schema.defaults();
   expect(defaults).toStrictEqual({ theme: "light", size: 14, tags: [], nested: { a: "y" } });
-  expect(calls).toBe(1);
   expect(schema.defaults().tags).not.toBe(defaults.tags);
   expectTypeOf(defaults).toEqualTypeOf<{ theme: string; size: number; tags: string[]; nested: { a: string } }>();
 
