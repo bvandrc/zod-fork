@@ -37,6 +37,7 @@ export {
 export { toJSONSchema } from "../core/json-schema-processors.js";
 export { fromJSONSchema } from "./from-json-schema.js";
 export { deepPartial } from "./deep-partial.js";
+export { deepStrict } from "./deep-strict.js";
 // Types and values both, from one module — re-exporting the types from core would collide.
 export { input, output } from "./in-out.js";
 
