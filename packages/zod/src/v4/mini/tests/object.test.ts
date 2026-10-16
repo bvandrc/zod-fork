@@ -216,10 +216,10 @@ test("z.exactPartial with mask", () => {
 });
 
 test("z.defaults", () => {
-  const schema = z.object({ name: z.string(), theme: z._default(z.string(), "light") });
+  const schema = z.object({ required: z.string(), defaulted: z._default(z.string(), "light") });
   const defaults = z.defaults(schema);
-  expect(defaults).toEqual({ theme: "light" });
-  expectTypeOf(defaults).toEqualTypeOf<{ theme: string }>();
+  expect(defaults).toStrictEqual({ defaulted: "light" });
+  expectTypeOf(defaults).toEqualTypeOf<{ defaulted: string }>();
 });
 
 test("z.required", () => {
