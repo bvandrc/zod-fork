@@ -1050,6 +1050,11 @@ export function partial(schema: ZodMiniObject | ZodMiniTuple, mask?: object) {
   });
 }
 
+/** The value each defaulted field of `schema` substitutes for an absent key. Function defaults are called once per call. */
+export function defaults<T extends ZodMiniObject>(schema: T): util.ObjectDefaults<T["shape"]> {
+  return util.defaults(schema, parse.parse);
+}
+
 // @__NO_SIDE_EFFECTS__
 export function exactPartial<T extends ZodMiniObject>(
   schema: T

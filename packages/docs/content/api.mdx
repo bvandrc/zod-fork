@@ -3194,6 +3194,28 @@ z.parse(randomDefault, undefined); // => 0.7223408162401552
 </Tabs>
 
 
+To read an object's defaults without parsing, use `.defaults()`. It returns the value each defaulted field would fill in for an absent key; fields without a default are left out.
+
+<Tabs groupId="lib" items={["Zod", "Zod Mini"]}>
+<Tab value="Zod">
+```ts
+const Settings = z.object({ name: z.string(), theme: z.string().default("light") });
+
+Settings.defaults(); // => { theme: "light" }
+```
+</Tab>
+<Tab value="Zod Mini">
+```ts
+const Settings = z.object({ name: z.string(), theme: z._default(z.string(), "light") });
+
+z.defaults(Settings); // => { theme: "light" }
+```
+</Tab>
+</Tabs>
+
+A function default is called once per `.defaults()` call.
+
+
 ## Prefaults
 
 In Zod, setting a *default* value will short-circuit the parsing process. If the input is `undefined`, the default value is eagerly returned. As such, the default value must be assignable to the *output type* of the schema.
