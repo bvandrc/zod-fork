@@ -1564,7 +1564,8 @@ function generateArrayCheck(
   accessor: string,
   buildsValue = true
 ): string | null {
-  const def = schema._zod.def as unknown as { element: SomeType };
+  const def = schema._zod.def as unknown as { element: SomeType; dropInvalid?: boolean };
+  if (def.dropInvalid) throw new ZodCompileUnsupportedError("array dropping invalid elements");
   doc.write(`if (!Array.isArray(${accessor})) return INVALID;`);
   generateSizeGate(doc, schema, `${accessor}.length`);
 

@@ -1823,6 +1823,15 @@ z.array(z.string()).check(z.length(5)); // must contain 5 items exactly
 
 {/* Unlike `.nonempty()` these methods do not change the inferred type. */}
 
+By default, one invalid element fails the whole array. To drop invalid elements instead, pass `dropInvalid: true` (Zod only; not available in Zod Mini). This suits stored data that's worth salvaging, such as entries written against an older shape. Size checks apply to the elements that remain, and a value that isn't an array still fails.
+
+```ts
+const nums = z.array(z.number(), { dropInvalid: true });
+
+nums.parse([1, "two", 3]); // => [1, 3]
+nums.parse("nope"); // ❌ throws
+```
+
 ## Tuples
 
 Unlike arrays, tuples are typically fixed-length arrays that specify different schemas for each index.

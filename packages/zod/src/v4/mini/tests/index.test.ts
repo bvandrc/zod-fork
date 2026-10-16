@@ -292,6 +292,11 @@ test("z.void", () => {
   expect(() => z.parse(a, null)).toThrow();
 });
 
+test("z.array has no dropInvalid", () => {
+  // @ts-expect-error classic-only option
+  z.array(z.string(), { dropInvalid: true });
+});
+
 test("z.array", () => {
   const a = z.array(z.string());
   expect(z.parse(a, ["hello", "world"])).toEqual(["hello", "world"]);
