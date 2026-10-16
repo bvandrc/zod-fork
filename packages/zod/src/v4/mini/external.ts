@@ -3,6 +3,7 @@ export * from "./parse.js";
 export * from "./schemas.js";
 export * from "./checks.js";
 export { deepPartial } from "./deep-partial.js";
+export { deepStrict } from "./deep-strict.js";
 export { input, output } from "./in-out.js";
 
 export type { infer } from "../core/index.js";
