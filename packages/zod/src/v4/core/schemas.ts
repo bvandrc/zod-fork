@@ -1832,8 +1832,6 @@ export const $ZodDate: core.$constructor<$ZodDate> = /*@__PURE__*/ core.$constru
 export interface $ZodArrayDef<T extends SomeType = $ZodType> extends $ZodTypeDef {
   type: "array";
   element: T;
-  /** Drop elements that fail to parse instead of failing the array. */
-  dropInvalid?: boolean | undefined;
 }
 
 export interface $ZodArrayInternals<T extends SomeType = $ZodType> extends _$ZodTypeInternals {
@@ -1875,28 +1873,6 @@ const arraySize = (input: unknown): number => (Array.isArray(input) ? input.leng
 const mapSize = (input: unknown): number => (input instanceof Map ? input.size : -1);
 const setSize = (input: unknown): number => (input instanceof Set ? input.size : -1);
 
-// marks a dropped element until the array is compacted
-const DROPPED = {};
-
-function markDropped(result: ParsePayload): ParsePayload {
-  if (result.issues.length) {
-    result.value = DROPPED;
-    result.issues = [];
-  }
-  return result;
-}
-
-// in place, so a memoized reference to the array stays valid
-function compactArray(payload: ParsePayload): ParsePayload {
-  const value = payload.value;
-  if (Array.isArray(value)) {
-    let length = 0;
-    for (const item of value) if (item !== DROPPED) value[length++] = item;
-    value.length = length;
-  }
-  return payload;
-}
-
 function handleArrayResult(result: ParsePayload<any>, final: ParsePayload<any[]>, index: number) {
   if (result.issues.length) {
     util.pushPrefixed(final.issues, index, result.issues);
@@ -1909,17 +1885,6 @@ export const $ZodArray: core.$constructor<$ZodArray> = /*@__PURE__*/ core.$const
 
   const memo = core.globalConfig.memoizer;
   memo?.attach(inst);
-  // a failed element yields a marker instead of issues, so the loop below neither fails nor aborts on it
-  const element: $ZodType = def.dropInvalid
-    ? ({
-        _zod: {
-          run: (payload, ctx) => {
-            const result = def.element._zod.run(payload, ctx);
-            return result instanceof Promise ? result.then(markDropped) : markDropped(result);
-          },
-        },
-      } as $ZodType)
-    : def.element;
 
   inst._zod.parse = (payload, ctx) => {
     const input = payload.value;
@@ -1940,7 +1905,7 @@ export const $ZodArray: core.$constructor<$ZodArray> = /*@__PURE__*/ core.$const
     const abortEarly = ctx?.abortEarly;
     for (let i = 0; i < input.length; i++) {
       const item = input[i];
-      const result = element._zod.run(
+      const result = def.element._zod.run(
         {
           value: item,
           issues: [],
@@ -1963,16 +1928,6 @@ export const $ZodArray: core.$constructor<$ZodArray> = /*@__PURE__*/ core.$const
 
     return payload; //handleArrayResultsAsync(parseResults, final);
   };
-
-  if (def.dropInvalid) {
-    // size checks bound what survives, so the raw length can't gate parsing
-    const parse = inst._zod.parse;
-    inst._zod.parse = (payload, ctx) => {
-      const result = parse(payload, ctx);
-      return result instanceof Promise ? result.then(compactArray) : compactArray(result);
-    };
-    return;
-  }
   capSize(inst, arraySize);
 });
 
