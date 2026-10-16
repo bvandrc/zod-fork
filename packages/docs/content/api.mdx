@@ -1547,6 +1547,21 @@ z.deepPartial(Post).parse({ author: {} }); // ✅
 
 The source schema is never modified, and the result is still a `ZodObject`, so `.shape` and `.extend()` keep working. A [discriminated union](#discriminated-unions) degrades to a plain `z.union()`, since an optional discriminator defeats the discriminated lookup. Like `.partial()`, it throws on an object carrying its own [refinement](#refinements).
 
+### `z.deepStrict()` [#deep-strict]
+
+Where `z.strictObject()` only rejects unknown keys at the top level, `z.deepStrict()` makes every object in the tree reject them, through arrays, tuples, unions, intersections, records, and wrappers.
+
+```ts
+const Post = z.object({
+  title: z.string(),
+  author: z.object({ name: z.string() }),
+});
+
+z.deepStrict(Post).parse({ title: "Hi", author: { name: "Ann", age: 30 } }); // ❌ unrecognized key "age"
+```
+
+The source schema is never modified. An object that already sets its own unknown-key handling with `z.looseObject()` or `.catchall()` keeps it.
+
 ### `.required()`
 
 Zod provides an API for making some or all properties *required*, inspired by TypeScript's [`Required`](https://www.typescriptlang.org/docs/handbook/utility-types.html#requiredtype) utility type.
