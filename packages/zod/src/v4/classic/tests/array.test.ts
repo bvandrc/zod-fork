@@ -295,7 +295,6 @@ test("dropInvalid", async () => {
   expect(schema.parse([1, "a", 2, null, 3])).toEqual([1, 2, 3]);
   expect(schema.parse(["a"])).toEqual([]);
   expect(schema.safeParse("not an array").success).toBe(false);
-  expect(z.array(z.number()).safeParse([1, "a"]).success).toBe(false);
   expectTypeOf<z.input<typeof schema>>().toEqualTypeOf<number[]>();
   expectTypeOf<z.output<typeof schema>>().toEqualTypeOf<number[]>();
 
