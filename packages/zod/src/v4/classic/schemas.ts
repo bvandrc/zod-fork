@@ -1638,6 +1638,9 @@ export interface ZodObject<
     Config
   >;
 
+  /** The value each defaulted field substitutes for an absent key. Function defaults are called once per call. */
+  defaults(): util.ObjectDefaults<Shape>;
+
   // exactPartial
   exactPartial(): ZodObject<
     {
@@ -1718,6 +1721,9 @@ export const ZodObject: core.$constructor<ZodObject> = /*@__PURE__*/ core.$const
     },
     partial(...args) {
       return util.partial(ZodOptional, this, args[0]);
+    },
+    defaults() {
+      return util.defaults(this, parse.parse);
     },
     exactPartial(...args) {
       return util.partial(ZodExactOptional, this, args[0], "exactPartial");
