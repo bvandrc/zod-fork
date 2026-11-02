@@ -374,3 +374,27 @@ test("dropInvalid", async () => {
   );
   expect(await asyncSchema.parseAsync([1, -1, "a", 2])).toEqual([1, 2]);
 });
+
+test("dropInvalid prunes a recursive tree without losing its type", () => {
+  const rule = z.object({ field: z.string(), value: z.number() });
+  const group = z.object({
+    combinator: z.enum(["and", "or"]),
+    get rules() {
+      return z.array(z.union([group, rule]), { dropInvalid: true });
+    },
+  });
+  type Group = z.output<typeof group>;
+  expectTypeOf<Group["rules"][number]>().toEqualTypeOf<Group | z.output<typeof rule>>();
+
+  const input = {
+    combinator: "and",
+    rules: [{ field: "a", value: 1 }, { stale: true }, { combinator: "or", rules: [{}] }],
+  };
+  expect(group.parse(input)).toEqual({
+    combinator: "and",
+    rules: [
+      { field: "a", value: 1 },
+      { combinator: "or", rules: [] },
+    ],
+  });
+});
