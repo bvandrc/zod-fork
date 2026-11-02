@@ -495,3 +495,57 @@ test("exactPartial - throws on schema with refinements", () => {
     ".exactPartial() cannot be used on object schemas containing refinements"
   );
 });
+
+test("partialNoDefaults - absent keys stay absent", () => {
+  const object = z.object({
+    name: z.string().default("anon"),
+    age: z.number().default(0).optional(),
+    tags: z.array(z.string()).prefault([]),
+    nested: z.object({ a: z.string().default("x") }),
+    plain: z.string(),
+  });
+  const patch = object.partialNoDefaults();
+
+  expect(object.partial().parse({})).toEqual({ name: "anon", age: 0, tags: [] });
+  expect(patch.parse({})).toEqual({});
+  expect(patch.parse({ name: "bob", plain: "p" })).toEqual({ name: "bob", plain: "p" });
+  // an explicit undefined is passed through rather than defaulted
+  expect(patch.parse({ name: undefined })).toEqual({ name: undefined });
+  // defaults below the top level still apply to a present value
+  expect(patch.parse({ nested: {} })).toEqual({ nested: { a: "x" } });
+  expect(patch.safeParse({ name: 1 }).success).toBe(false);
+
+  expectTypeOf<z.input<typeof patch>>().toEqualTypeOf<z.input<ReturnType<typeof object.partial>>>();
+  expectTypeOf<z.output<typeof patch>>().toEqualTypeOf<{
+    name?: string | undefined;
+    age?: number | undefined;
+    tags?: string[] | undefined;
+    nested?: { a: string } | undefined;
+    plain?: string | undefined;
+  }>();
+});
+
+test("partialNoDefaults with mask", () => {
+  const object = z.object({ name: z.string().default("anon"), age: z.number().default(0) });
+  const masked = object.partialNoDefaults({ name: true });
+  expect(masked.parse({})).toEqual({ age: 0 });
+  expectTypeOf<z.output<typeof masked>>().toEqualTypeOf<{ name?: string | undefined; age: number }>();
+});
+
+test("partialNoDefaults - async and throws on refinements", async () => {
+  const patch = z
+    .object({
+      name: z
+        .string()
+        .default("anon")
+        .refine(async () => true),
+    })
+    .partialNoDefaults();
+  expect(await patch.parseAsync({})).toEqual({});
+  expect(() =>
+    z
+      .object({ a: z.string() })
+      .refine(() => true)
+      .partialNoDefaults()
+  ).toThrow(".partialNoDefaults() cannot be used on object schemas containing refinements");
+});
