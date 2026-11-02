@@ -1524,6 +1524,27 @@ export interface ZodArray<T extends core.SomeType = core.$ZodType>
   unwrap(): T;
   "~standard": ZodStandardSchemaWithJSON<this>;
 }
+export interface ZodArrayParams extends core.$ZodArrayParams {
+  /** Drop elements that fail to parse instead of failing the array. */
+  dropInvalid?: boolean | undefined;
+}
+
+// marks a dropped element until the array is compacted
+const DROPPED = {};
+
+function handleDroppingResult(result: core.ParsePayload, final: core.ParsePayload<any[]>, index: number) {
+  final.value[index] = result.issues.length ? DROPPED : result.value;
+}
+
+// in place, so a memoized reference to the array stays valid
+function compactArray(payload: core.ParsePayload<any[]>): core.ParsePayload<any[]> {
+  const value = payload.value;
+  let length = 0;
+  for (const item of value) if (item !== DROPPED) value[length++] = item;
+  value.length = length;
+  return payload;
+}
+
 export const ZodArray: core.$constructor<ZodArray> = /*@__PURE__*/ core.$constructor<ZodArray>(
   "ZodArray",
   (inst, def) => {
@@ -1533,6 +1554,24 @@ export const ZodArray: core.$constructor<ZodArray> = /*@__PURE__*/ core.$constru
     inst._zod.processJSONSchema = (ctx, json, params) => processors.arrayProcessor(inst, ctx, json, params);
 
     inst.element = def.element;
+
+    // classic only, so zod/mini's arrays carry none of this; size checks bound what survives, so core's raw-length gate is bypassed
+    if ((def as ZodArrayParams).dropInvalid) {
+      const parse = inst._zod.parse;
+      inst._zod.parse = (payload, ctx) => {
+        const input = payload.value;
+        if (!Array.isArray(input)) return parse(payload, ctx);
+        const memo = core.globalConfig.memoizer;
+        payload.value = memo ? memo.alloc(inst, payload, Array(input.length), ctx) : Array(input.length);
+        const proms: Promise<unknown>[] = [];
+        for (let i = 0; i < input.length; i++) {
+          const result = def.element._zod.run({ value: input[i], issues: [] }, ctx);
+          if (result instanceof Promise) proms.push(result.then((result) => handleDroppingResult(result, payload, i)));
+          else handleDroppingResult(result, payload, i);
+        }
+        return proms.length ? Promise.all(proms).then(() => compactArray(payload)) : compactArray(payload);
+      };
+    }
   },
   {
     min(n, params) {
@@ -1553,7 +1592,7 @@ export const ZodArray: core.$constructor<ZodArray> = /*@__PURE__*/ core.$constru
   }
 );
 
-export function array<T extends core.SomeType>(element: T, params?: string | core.$ZodArrayParams): ZodArray<T> {
+export function array<T extends core.SomeType>(element: T, params?: string | ZodArrayParams): ZodArray<T> {
   return core._array(ZodArray, element as any, params) as any;
 }
 
